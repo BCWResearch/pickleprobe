@@ -1,9 +1,9 @@
-host = "http://localhost"
-rest_port = 1317
-valcons_address = ""
+host = "http://35.214.161.207"
+rest_port = 1717
+valcons_address = "zenvalcons1wyg2484p62tchdce0z7hjsrcrtn024h3887x49"
 metrics_port = 3000
-valoper_address = ""
-account_address = ""
+valoper_address = "zenvaloper1wyg2484p62tchdce0z7hjsrcrtn024h3n5d6ey"
+account_address = "zen1wyg2484p62tchdce0z7hjsrcrtn024h3e4fm27"
 
 
 [metrics.latest_block_height]
@@ -29,11 +29,11 @@ description = "Validator commission rate"
 [metrics.validator_commission_amount]
 path = "/cosmos/distribution/v1beta1/validators/${valoper_address}/commission"
 description = "Total commission amount accrued by validator"
-scaling_factor = 1e18
+scaling_factor = 1e6
 
 [metrics.validator_rewards_total]
 path = "/cosmos/distribution/v1beta1/validators/${account_address}/rewards"
 description = "Validator total rewards"
-scaling_factor = 1e18
+scaling_factor = 1e6
 
 

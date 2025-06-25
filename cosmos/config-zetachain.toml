@@ -1,9 +1,9 @@
-host = "http://localhost"
+host = "http://35.212.49.108"
 rest_port = 1317
-valcons_address = ""
+valcons_address = "zetavalcons1d8z6rgh8ath5a4w6rlsafmx6jjhf2pp6nd6zaq"
 metrics_port = 3000
-valoper_address = ""
-account_address = ""
+valoper_address = "zetavaloper1afyutlgayexnz8a2l05jhp7k05a632tphyml9v"
+account_address = "zeta1afyutlgayexnz8a2l05jhp7k05a632tpnyrrg6"
 
 
 [metrics.latest_block_height]
