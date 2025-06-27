@@ -39,6 +39,53 @@ gauges = {}
 for name, m in metrics_config.items():
     gauges[name] = Gauge(name, m["description"])
 
+def extract_binary_path_from_unit(unit_path):
+    import re
+    try:
+        with open(unit_path, 'r') as f:
+            content = f.read()
+        match = re.search(r'^ExecStart=(\S+)', content, re.MULTILINE)
+        if match:
+            return match.group(1)
+    except Exception as e:
+        print(f"[!] Failed to extract binary path from {unit_path}: {e}")
+    return None
+
+def get_binary_version(binary_path):
+    import subprocess
+
+    version_cmds = [
+        [binary_path, "version"],
+        [binary_path, "--version"]
+    ]
+
+    for cmd in version_cmds:
+        try:
+            output = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT).strip()
+            return output
+        except subprocess.CalledProcessError as e:
+            continue
+    return None
+
+async def report_binary_version_daily():
+    unit_path = raw_config.get("systemd_unit_path", "")
+    binary_path = extract_binary_path_from_unit(unit_path)
+
+    while True:
+        if not binary_path:
+            print(f"[!] No binary path found from unit file: {unit_path}")
+            return
+
+        version = get_binary_version(binary_path)
+        if version:
+            binary_version_metric.labels(version=version).set(1)
+            print(f"[✓] Binary version: {version}")
+        else:
+            print(f"[!] Could not determine binary version for: {binary_path}")
+
+        await asyncio.sleep(86400)
+
+
 # ---------------------------
 # Fetch Function
 # ---------------------------
@@ -101,7 +148,13 @@ async def metric_updater():
 def run():
     print(f"Exporter running on :{port}/metrics using config: {args.config}")
     start_http_server(port)
-    asyncio.run(metric_updater())
+    async def start_all_tasks():
+        await asyncio.gather(
+            metric_updater(),              # regular metrics every 10s
+            report_binary_version_daily()  # once per day
+        )
+
+    asyncio.run(start_all_tasks())
 
 if __name__ == "__main__":
     run()

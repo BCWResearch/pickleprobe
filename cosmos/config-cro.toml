@@ -4,7 +4,7 @@ valcons_address = "crocnclcons1uld9fpe55wt9z6qkt8qxdasc9r6k6xht5pjzke"
 metrics_port = 3000
 valoper_address = "crocncl1kj6fmcmnrmzkn63nsu4e207tjf2dvtflk9q4np"
 account_address = "cro1kj6fmcmnrmzkn63nsu4e207tjf2dvtfl4gru3a"
-
+systemd_unit_path="/etc/systemd/system/chain-maind.service"
 
 [metrics.latest_block_height]
 path = "/cosmos/base/tendermint/v1beta1/blocks/latest"
