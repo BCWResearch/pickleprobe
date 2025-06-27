@@ -39,6 +39,8 @@ gauges = {}
 for name, m in metrics_config.items():
     gauges[name] = Gauge(name, m["description"])
 
+binary_version_metric = Gauge("binary_version_info", "Node binary version", ["version"])
+
 def extract_binary_path_from_unit(unit_path):
     import re
     try:
