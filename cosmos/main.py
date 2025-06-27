@@ -104,7 +104,7 @@ async def fetch_metric(name, client):
         data = response.json()
 
         match name:
-            case "latest_block_height":
+            case "latest_block":
                 h = int(data["block"]["header"]["height"])
                 gauges[name].set(h)
             case "validator_missed_blocks_total":

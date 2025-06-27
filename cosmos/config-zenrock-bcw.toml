@@ -6,7 +6,7 @@ valoper_address = "zenvaloper1wyg2484p62tchdce0z7hjsrcrtn024h3n5d6ey"
 account_address = "zen1wyg2484p62tchdce0z7hjsrcrtn024h3e4fm27"
 
 
-[metrics.latest_block_height]
+[metrics.latest_block]
 path = "/cosmos/base/tendermint/v1beta1/blocks/latest"
 description = "Latest block height"
 

@@ -6,7 +6,7 @@ valoper_address = "crocncl1kj6fmcmnrmzkn63nsu4e207tjf2dvtflk9q4np"
 account_address = "cro1kj6fmcmnrmzkn63nsu4e207tjf2dvtfl4gru3a"
 systemd_unit_path="/etc/systemd/system/chain-maind.service"
 
-[metrics.latest_block_height]
+[metrics.latest_block]
 path = "/cosmos/base/tendermint/v1beta1/blocks/latest"
 description = "Latest block height"
 
