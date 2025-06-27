@@ -1,3 +1,4 @@
 httpx
 prometheus_client
 toml
+psutil
