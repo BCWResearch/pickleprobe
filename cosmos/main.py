@@ -4,6 +4,11 @@ import httpx
 import toml
 import time
 from prometheus_client import Gauge, start_http_server
+import os
+import re
+import subprocess
+import psutil
+
 
 # ---------------------------
 # Argument Parsing
@@ -41,8 +46,10 @@ for name, m in metrics_config.items():
 
 binary_version_metric = Gauge("binary_version_info", "Node binary version", ["version"])
 
+# -----------------------------------
+# Extract binary path from unit file
+# -----------------------------------
 def extract_binary_path_from_unit(unit_path):
-    import re
     try:
         with open(unit_path, 'r') as f:
             content = f.read()
@@ -53,8 +60,33 @@ def extract_binary_path_from_unit(unit_path):
         print(f"[!] Failed to extract binary path from {unit_path}: {e}")
     return None
 
+# -----------------------------------
+# Detect real binary under Cosmovisor
+# -----------------------------------
+def find_actual_cosmos_binary_from_parent(parent_bin="cosmovisor"):
+    try:
+        for proc in psutil.process_iter(attrs=["pid", "name", "cmdline"]):
+            if not proc.info.get("cmdline"):
+                continue
+            if parent_bin in proc.info["cmdline"][0]:  # e.g., /path/to/cosmovisor
+                children = proc.children()
+                for child in children:
+                    try:
+                        exe_path = os.readlink(f"/proc/{child.pid}/exe")
+                        return exe_path
+                    except Exception:
+                        continue
+    except Exception as e:
+        print(f"[!] Error inspecting processes: {e}")
+    return None
+
+# -----------------------------------
+# Run version command on binary
+# -----------------------------------
 def get_binary_version(binary_path):
-    import subprocess
+    if not binary_path:
+        print("[!] No binary path provided for version check")
+        return None
 
     version_cmds = [
         [binary_path, "version"],
@@ -65,17 +97,26 @@ def get_binary_version(binary_path):
         try:
             output = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT).strip()
             return output
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             continue
     return None
 
+# -----------------------------------
+# Daily metric reporter
+# -----------------------------------
 async def report_binary_version_daily():
     unit_path = raw_config.get("systemd_unit_path", "")
-    binary_path = extract_binary_path_from_unit(unit_path)
+    initial_path = extract_binary_path_from_unit(unit_path)
+
+    # Try to detect the real binary if cosmovisor is involved
+    if initial_path and "cosmovisor" in initial_path:
+        binary_path = find_actual_cosmos_binary_from_parent()
+    else:
+        binary_path = initial_path
 
     while True:
         if not binary_path:
-            print(f"[!] No binary path found from unit file: {unit_path}")
+            print(f"[!] No valid binary path found (unit: {unit_path})")
             return
 
         version = get_binary_version(binary_path)
@@ -86,7 +127,6 @@ async def report_binary_version_daily():
             print(f"[!] Could not determine binary version for: {binary_path}")
 
         await asyncio.sleep(86400)
-
 
 # ---------------------------
 # Fetch Function
