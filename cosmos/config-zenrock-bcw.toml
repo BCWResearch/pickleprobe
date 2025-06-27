@@ -1,10 +1,10 @@
-host = "http://35.214.161.207"
+host = "http://localhost"
 rest_port = 1717
 valcons_address = "zenvalcons1wyg2484p62tchdce0z7hjsrcrtn024h3887x49"
 metrics_port = 3000
 valoper_address = "zenvaloper1wyg2484p62tchdce0z7hjsrcrtn024h3n5d6ey"
 account_address = "zen1wyg2484p62tchdce0z7hjsrcrtn024h3e4fm27"
-
+systemd_unit_path="/etc/systemd/system/chain-maind.service"
 
 [metrics.latest_block]
 path = "/cosmos/base/tendermint/v1beta1/blocks/latest"

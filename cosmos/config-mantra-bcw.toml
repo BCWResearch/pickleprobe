@@ -4,7 +4,7 @@ valcons_address = "mantravalcons1vmazg6t0mma4rc9a5gfagyqpmhxw33tkuwqcfg"
 metrics_port = 3000
 valoper_address = "mantravaloper1r3s4pefpz69fk4rq8sn0zt2wxnv09uffz06nxu"
 account_address = "mantra1r3s4pefpz69fk4rq8sn0zt2wxnv09uffx5ma2e"
-
+systemd_unit_path="/etc/systemd/system/mantrad.service"
 
 [metrics.latest_block]
 path = "/cosmos/base/tendermint/v1beta1/blocks/latest"

@@ -1,10 +1,10 @@
-host = "http://35.214.131.222"
+host = "http://localhost"
 rest_port = 1317
 valcons_address = "nillionvalcons1yxalagepr9f2l0am7qvfn85053c6hf6hz6mgnt"
 metrics_port = 3000
 valoper_address = "nillionvaloper1m0jknxsq2zz0yw2mns8q49zcf0jwjar8qgz2y0"
 account_address = "nillion1m0jknxsq2zz0yw2mns8q49zcf0jwjar8w7naz3"
-
+systemd_unit_path="/etc/systemd/system/nillion.service"
 
 [metrics.latest_block]
 path = "/cosmos/base/tendermint/v1beta1/blocks/latest"

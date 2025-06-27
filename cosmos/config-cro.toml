@@ -1,4 +1,4 @@
-host = "http://35.212.10.225"
+host = "http://localhost"
 rest_port = 1317
 valcons_address = "crocnclcons1uld9fpe55wt9z6qkt8qxdasc9r6k6xht5pjzke"
 metrics_port = 3000
