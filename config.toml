@@ -1,0 +1,38 @@
+protocol = "cosmos"
+host = "http://localhost"
+rest_port = 1317
+valcons_address = ""
+valoper_address = ""
+account_address = ""
+metrics_port = 3000
+systemd_unit_path = "/etc/systemd/system/gaiad.service"
+
+[metrics.latest_block]
+path = "/cosmos/base/tendermint/v1beta1/blocks/latest"
+description = "Latest block height"
+
+[metrics.validator_missed_blocks_total]
+path = "/cosmos/slashing/v1beta1/signing_infos/${valcons_address}"
+description = "Total missed blocks"
+
+[metrics.validator_is_jailed]
+path = "/cosmos/staking/v1beta1/validators/${valoper_address}"
+description = "Is validator jailed"
+
+[metrics.validator_is_active]
+path = "/cosmos/staking/v1beta1/validators/${valoper_address}"
+description = "Is validator active"
+
+[metrics.validator_commission_rate]
+path = "/cosmos/staking/v1beta1/validators/${valoper_address}"
+description = "Validator commission rate"
+
+[metrics.validator_commission_amount]
+path = "/cosmos/distribution/v1beta1/validators/${valoper_address}/commission"
+description = "Total commission amount"
+scaling_factor = 1e18
+
+[metrics.validator_rewards_total]
+path = "/cosmos/distribution/v1beta1/delegators/${account_address}/rewards"
+description = "Validator total rewards"
+scaling_factor = 1e18
