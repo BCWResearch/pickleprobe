@@ -18,19 +18,27 @@ def run():
     config = load_config(args.config)
     protocol = config["protocol"]
 
+    collector = None
+
     if protocol == "cosmos":
+        from collector import cosmos
         collector = cosmos
+        tasks = [
+            cosmos.metric_updater(config),
+            report_binary_version_daily(config)
+        ]
     else:
-        raise ValueError(f"Unsupported protocol: {protocol}")
+        print(f"[!] Protocol '{protocol}' not supported for metrics collection.")
+        print("[~] Only binary version metric will be exposed.")
+        tasks = [
+            report_binary_version_daily(config)
+        ]
 
     print(f"Exporter running on :{config['metrics_port']}/metrics using config: {args.config}")
     start_http_server(config["metrics_port"])
 
     async def main():
-        await asyncio.gather(
-            collector.metric_updater(config),
-            report_binary_version_daily(config)
-        )
+        await asyncio.gather(*tasks)
 
     asyncio.run(main())
 
