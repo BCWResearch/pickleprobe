@@ -32,7 +32,6 @@ def run():
             report_binary_version_daily(config)
         )
 
-    # 🟢 This line was missing:
     asyncio.run(main())
 
 if __name__ == "__main__":
