@@ -26,10 +26,11 @@ def run():
     print(f"Exporter running on :{config['metrics_port']}/metrics using config: {args.config}")
     start_http_server(config["metrics_port"])
 
-    asyncio.run(asyncio.gather(
-        collector.metric_updater(config),
-        report_binary_version_daily(config)
-    ))
+    async def main():
+        await asyncio.gather(
+            collector.metric_updater(config),
+            report_binary_version_daily(config)
+        )
 
 if __name__ == "__main__":
     run()
