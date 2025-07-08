@@ -4,6 +4,23 @@ set -e
 
 echo "🌐 Multi-Chain Exporter Setup Script"
 
+# Detect OS and install python3-venv if missing
+if ! python3 -m venv --help >/dev/null 2>&1; then
+  echo "[!] python3-venv is not available. Installing..."
+
+  if [ -f /etc/debian_version ]; then
+    # Debian/Ubuntu
+    sudo apt update
+    sudo apt install -y python3-venv
+  elif [ -f /etc/redhat-release ]; then
+    # RHEL/CentOS
+    sudo yum install -y python3-venv
+  else
+    echo "[!] Unsupported OS for automatic venv setup. Please install python3-venv manually."
+    exit 1
+  fi
+fi
+
 # Create venv
 echo "📦 Setting up Python environment..."
 python3 -m venv venv
@@ -15,8 +32,8 @@ pip install httpx prometheus_client toml psutil
 echo "🛠️  Exporter Configuration"
 read -p "Enter protocol (cosmos / ethereum / other): " protocol
 read -p "Is this a validator node? (yes/no): " is_validator
-read -p "Enter Prometheus metrics port (default 3000): " metrics_port
-metrics_port=${metrics_port:-3000}
+read -p "Enter Prometheus metrics port (default 3001): " metrics_port
+metrics_port=${metrics_port:-3001}
 read -p "Enter the systemd service file name to monitor (e.g. gaiad.service): " service_file
 
 # Generate config.toml
