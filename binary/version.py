@@ -1,14 +1,17 @@
 import asyncio
 import os
+import psutil
 import re
 import subprocess
-import psutil
-from typing import Dict
 from prometheus_client import Gauge
+import logging
 
-binary_version_metric = Gauge("binary_version_info", "Node binary version", ["version", "binary"])
+logger = logging.getLogger("binary")
+logger.setLevel(logging.INFO)
 
-def extract_binary_path_from_unit(unit_path: str) -> str | None:
+binary_version_metric = Gauge("binary_version_info", "Node binary version", ["binary", "version"])
+
+def extract_binary_path_from_unit(unit_path):
     try:
         with open(unit_path, 'r') as f:
             content = f.read()
@@ -16,64 +19,62 @@ def extract_binary_path_from_unit(unit_path: str) -> str | None:
         if match:
             return match.group(1)
     except Exception as e:
-        print(f"[!] Failed to extract binary path from {unit_path}: {e}")
+        logger.error(f"[!] Failed to extract binary path from {unit_path}: {e}")
     return None
 
-def find_actual_binary(parent_bin="cosmovisor") -> str | None:
+def find_actual_cosmovisor_binary(parent_bin="cosmovisor"):
     try:
         for proc in psutil.process_iter(attrs=["pid", "name", "cmdline"]):
             if not proc.info.get("cmdline"):
                 continue
             if parent_bin in proc.info["cmdline"][0]:
-                children = proc.children()
-                for child in children:
+                for child in proc.children():
                     try:
                         exe_path = os.readlink(f"/proc/{child.pid}/exe")
                         return exe_path
                     except Exception:
                         continue
     except Exception as e:
-        print(f"[!] Error inspecting processes: {e}")
+        logger.error(f"[!] Error inspecting processes: {e}")
     return None
 
-def get_binary_version(binary_path: str) -> str | None:
+def get_binary_version(binary_path):
+    if not binary_path:
+        return None
+
     version_cmds = [
         [binary_path, "version"],
         [binary_path, "--version"]
     ]
+
     for cmd in version_cmds:
         try:
             output = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT).strip()
-            match = re.search(r"\b\d+\.\d+\.\d+([\-+a-zA-Z0-9]*)?\b", output)
+            match = re.search(r"\b\d+\.\d+\.\d+([-+a-zA-Z0-9]*)?\b", output)
             if match:
                 return match.group(0)
-            return output
+            return output  # fallback to full output
         except subprocess.CalledProcessError:
             continue
     return None
 
-async def report_binary_version_daily(config: Dict):
+async def report_binary_version_daily(config):
     binaries = config.get("binaries", {})
-    if not binaries:
-        print("[!] No binaries specified in config.")
-        return
 
     while True:
-        for name, unit_path in binaries.items():
-            print(f"[~] Checking binary for: {name}")
-            initial_path = extract_binary_path_from_unit(unit_path)
+        for alias, unit_path in binaries.items():
+            binary_path = extract_binary_path_from_unit(unit_path)
 
-            binary_path = find_actual_binary() if (initial_path and "cosmovisor" in initial_path) else initial_path
-
-            if not binary_path:
-                print(f"[!] No valid binary path for {name} (unit: {unit_path})")
-                continue
+            if binary_path and "cosmovisor" in binary_path:
+                detected = find_actual_cosmovisor_binary()
+                if detected:
+                    binary_path = detected
 
             version = get_binary_version(binary_path)
             if version:
-                binary_version_metric.labels(version=version, binary=name).set(1)
-                print(f"[✓] {name} version: {version}")
+                binary_version_metric.labels(binary=alias, version=version).set(1)
+                logger.info(f"[✓] {alias}: {version}")
             else:
-                print(f"[!] Could not determine version for {name}")
+                logger.warning(f"[!] Could not determine version for: {alias}")
 
-        await asyncio.sleep(86400)  # every 24h
+        await asyncio.sleep(86400)
