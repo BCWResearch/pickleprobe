@@ -6,12 +6,12 @@ from web3 import Web3, HTTPProvider
 # Gauges for EVM metrics
 # -------------------------
 gauges = {
-    "peer_count": Gauge("evm_peer_count", "Number of connected peers"),
-    "latest_block": Gauge("evm_latest_block", "Latest block number"),
-    "syncing": Gauge("evm_syncing", "Syncing status: 1 if synced, 0 if syncing"),
-    "blocks_to_sync": Gauge("evm_blocks_to_sync", "Blocks remaining to sync"),
-    "network_name": Gauge("evm_network_name", "Network ID"),
-    "net_listening": Gauge("evm_net_listening", "Listening status: 1 if true, 0 if false"),
+    "peer_count": Gauge("peer_count", "Number of connected peers"),
+    "latest_block": Gauge("latest_block", "Latest block number"),
+    "syncing": Gauge("syncing", "Syncing status: 1 if synced, 0 if syncing"),
+    "blocks_to_sync": Gauge("blocks_to_sync", "Blocks remaining to sync"),
+    "network_name": Gauge("network_name", "Network ID"),
+    "net_listening": Gauge("net_listening", "Listening status: 1 if true, 0 if false"),
 }
 
 

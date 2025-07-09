@@ -4,9 +4,7 @@ set -e
 
 echo "🌐 Multi-Chain Exporter Setup Script"
 
-# ---------------------------
-# Ensure python3-venv is installed
-# ---------------------------
+# Detect OS and install python3-venv if missing
 if ! python3 -m venv --help >/dev/null 2>&1; then
   echo "[!] python3-venv is not available. Installing..."
 
@@ -16,52 +14,46 @@ if ! python3 -m venv --help >/dev/null 2>&1; then
   elif [ -f /etc/redhat-release ]; then
     sudo yum install -y python3-venv
   else
-    echo "[!] Unsupported OS for automatic venv setup."
+    echo "[!] Unsupported OS for automatic venv setup. Please install python3-venv manually."
     exit 1
   fi
 fi
 
-# ---------------------------
-# Setup Python venv
-# ---------------------------
-echo "📦 Creating virtual environment in ./venv..."
+# Create venv
+echo "📦 Setting up Python environment..."
 python3 -m venv venv
-
-echo "📦 Activating virtual environment and installing dependencies..."
 source venv/bin/activate
 pip install -U pip
-pip install httpx prometheus_client toml psutil web3
+pip install httpx prometheus_client toml psutil
 
-# ---------------------------
-# Gather config input
-# ---------------------------
+# Gather basic config
 echo "🛠️  Exporter Configuration"
-read -p "Enter protocol (cosmos / evm / other): " protocol
+read -p "Enter protocol (cosmos / ethereum / other): " protocol
 read -p "Is this a validator node? (yes/no): " is_validator
 read -p "Enter Prometheus metrics port (default 3000): " metrics_port
 metrics_port=${metrics_port:-3000}
-read -p "Enter systemd service files to monitor (comma-separated, e.g. gaiad.service,relayer.service): " service_list
 
-# ---------------------------
-# Generate config.toml
-# ---------------------------
+# Ask for multiple services
+echo "🔍 Enter one or more systemd service files for binaries (comma-separated):"
+read -p "Example: gaiad.service,relayer.service,geth.service: " service_files
+
+# Prepare config.toml
 echo "📝 Writing config.toml..."
-echo "protocol = \"$protocol\"" > config.toml
-echo "metrics_port = $metrics_port" >> config.toml
-echo "" >> config.toml
-echo "[binaries]" >> config.toml
+cat > config.toml <<EOF
+protocol = "$protocol"
+metrics_port = $metrics_port
 
-IFS=',' read -ra services <<< "$service_list"
-i=1
+[binaries]
+EOF
+
+IFS=',' read -ra services <<< "$service_files"
 for svc in "${services[@]}"; do
-  trimmed=$(echo "$svc" | xargs)
-  echo "bin$i = \"/etc/systemd/system/$trimmed\"" >> config.toml
-  ((i++))
+  svc=$(echo "$svc" | xargs)  # trim
+  alias=${svc%.service}
+  echo "$alias = \"/etc/systemd/system/$svc\"" >> config.toml
 done
 
-# ---------------------------
-# Protocol-specific config
-# ---------------------------
+# Add Cosmos metrics if selected
 if [[ "$protocol" == "cosmos" ]]; then
 cat >> config.toml <<EOF
 
@@ -106,14 +98,6 @@ description = "Validator total rewards"
 scaling_factor = 1e18
 EOF
   fi
-
-elif [[ "$protocol" == "evm" ]]; then
-cat >> config.toml <<EOF
-
-[default]
-rpcaddress = "http://localhost:8545"
-client = "geth"
-EOF
 else
   echo "⚠️ Unsupported protocol '$protocol'. Only binary version metrics will be enabled."
 fi
@@ -123,7 +107,8 @@ echo "✅ config.toml created."
 # ---------------------------
 # Create systemd service
 # ---------------------------
-echo "🔧 Creating systemd service: pickleprobe"
+echo "🔧 Setting up systemd service: pickleprobe"
+
 cat > /etc/systemd/system/pickleprobe.service <<EOF
 [Unit]
 Description=PickleProbe Multi-Protocol Exporter
@@ -141,7 +126,7 @@ WantedBy=multi-user.target
 EOF
 
 # ---------------------------
-# Enable and Start Service
+# Enable + start service
 # ---------------------------
 echo "🟢 Enabling and starting pickleprobe..."
 systemctl daemon-reexec
