@@ -47,16 +47,22 @@ def get_binary_version(binary_path):
         [binary_path, "--version"]
     ]
 
+    version_regex = re.compile(r"\bv?(\d+\.\d+\.\d+(?:[-+.\w]*)?)\b")
+
     for cmd in version_cmds:
         try:
             output = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT).strip()
-            match = re.search(r"\b\d+\.\d+\.\d+([-+a-zA-Z0-9]*)?\b", output)
-            if match:
-                return match.group(0)
-            return output  # fallback to full output
+            lines = output.splitlines()
+            for line in lines:
+                match = version_regex.search(line)
+                if match:
+                    return match.group(0)
+            # Fallback if no match found
+            return lines[0] if lines else None
         except subprocess.CalledProcessError:
             continue
     return None
+
 
 async def report_binary_version_daily(config):
     binaries = config.get("binaries", {})
