@@ -2,29 +2,12 @@
 
 set -e
 
-echo "🌐 Multi-Chain Exporter Setup Script"
+echo "🌐 Multi-Chain Exporter Setup Script (Global Python)"
 
-# Ensure python3-venv is installed
-if ! python3 -m venv --help >/dev/null 2>&1; then
-  echo "[!] python3-venv is not available. Installing..."
-
-  if [ -f /etc/debian_version ]; then
-    sudo apt update
-    sudo apt install -y python3-venv
-  elif [ -f /etc/redhat-release ]; then
-    sudo yum install -y python3-venv
-  else
-    echo "[!] Unsupported OS. Please install python3-venv manually."
-    exit 1
-  fi
-fi
-
-# Setup Python venv
-echo "📦 Setting up Python environment..."
-python3 -m venv venv
-source venv/bin/activate
-pip install -U pip
-pip install httpx prometheus_client toml psutil web3 schedule
+# Ensure required packages are available
+echo "📦 Installing required Python packages globally..."
+sudo pip3 install --upgrade pip
+sudo pip3 install httpx prometheus_client toml psutil web3 schedule
 
 # ---------------------------
 # Gather config input
@@ -45,7 +28,7 @@ protocol = "$protocol"
 metrics_port = $metrics_port
 EOF
 
-# Add [binaries] section
+# Add [binaries] section with auto-detected paths
 echo -e "\n[binaries]" >> config.toml
 IFS=',' read -ra BIN_ARRAY <<< "$binary_input"
 for alias in "${BIN_ARRAY[@]}"; do
@@ -148,7 +131,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=$(pwd)
-ExecStart=$(pwd)/venv/bin/python $(pwd)/main.py --config config.toml
+ExecStart=/usr/bin/python3 $(pwd)/main.py --config config.toml
 Restart=always
 RestartSec=5
 
