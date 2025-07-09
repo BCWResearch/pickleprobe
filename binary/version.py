@@ -15,9 +15,13 @@ def extract_binary_path_from_unit(unit_path):
     try:
         with open(unit_path, 'r') as f:
             content = f.read()
+
+        # Match ExecStart line
         match = re.search(r'^ExecStart=(\S+)', content, re.MULTILINE)
         if match:
-            return match.group(1)
+            full_cmd = match.group(1)
+            binary_path = full_cmd.split()[0]  # Only extract the binary, e.g., /usr/bin/heimdalld
+            return binary_path
     except Exception as e:
         logger.error(f"[!] Failed to extract binary path from {unit_path}: {e}")
     return None
@@ -57,12 +61,10 @@ def get_binary_version(binary_path):
                 match = version_regex.search(line)
                 if match:
                     return match.group(0)
-            # Fallback if no match found
             return lines[0] if lines else None
         except subprocess.CalledProcessError:
             continue
     return None
-
 
 async def report_binary_version_daily(config):
     binaries = config.get("binaries", {})
