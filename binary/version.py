@@ -85,4 +85,4 @@ async def report_binary_version_daily(config):
             else:
                 logger.warning(f"[!] Could not determine version for: {alias}")
 
-        await asyncio.sleep(86400)
+        await asyncio.sleep(3600)
