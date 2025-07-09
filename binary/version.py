@@ -3,15 +3,12 @@ import os
 import re
 import subprocess
 import psutil
+from typing import Dict
 from prometheus_client import Gauge
 
-# Prometheus metric
-binary_version_metric = Gauge("binary_version_info", "Node binary version", ["version"])
+binary_version_metric = Gauge("binary_version_info", "Node binary version", ["version", "binary"])
 
-# -----------------------------------
-# Extract binary path from unit file
-# -----------------------------------
-def extract_binary_path_from_unit(unit_path):
+def extract_binary_path_from_unit(unit_path: str) -> str | None:
     try:
         with open(unit_path, 'r') as f:
             content = f.read()
@@ -22,10 +19,7 @@ def extract_binary_path_from_unit(unit_path):
         print(f"[!] Failed to extract binary path from {unit_path}: {e}")
     return None
 
-# -----------------------------------
-# Detect real binary under Cosmovisor
-# -----------------------------------
-def find_actual_cosmos_binary_from_parent(parent_bin="cosmovisor"):
+def find_actual_binary(parent_bin="cosmovisor") -> str | None:
     try:
         for proc in psutil.process_iter(attrs=["pid", "name", "cmdline"]):
             if not proc.info.get("cmdline"):
@@ -42,63 +36,44 @@ def find_actual_cosmos_binary_from_parent(parent_bin="cosmovisor"):
         print(f"[!] Error inspecting processes: {e}")
     return None
 
-# -----------------------------------
-# Run version command on binary
-# -----------------------------------
-def get_binary_version(binary_path):
-    if not binary_path:
-        print("[!] No binary path provided for version check")
-        return None
-
+def get_binary_version(binary_path: str) -> str | None:
     version_cmds = [
         [binary_path, "version"],
         [binary_path, "--version"]
     ]
-
     for cmd in version_cmds:
         try:
-            print(f"[~] Trying: {' '.join(cmd)}")
             output = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT).strip()
-            print(f"[✓] Raw version output: {output}")
+            match = re.search(r"\b\d+\.\d+\.\d+([\-+a-zA-Z0-9]*)?\b", output)
+            if match:
+                return match.group(0)
             return output
         except subprocess.CalledProcessError:
             continue
-        except Exception as e:
-            print(f"[!] Error running {cmd}: {e}")
     return None
 
-# -----------------------------------
-# Extract semver-like version using regex
-# -----------------------------------
-def extract_version_string(output: str) -> str:
-    match = re.search(r"\b\d+\.\d+\.\d+([\-+a-zA-Z0-9]*)?\b", output)
-    if match:
-        return match.group(0)
-    return "unknown"
-
-# -----------------------------------
-# Daily metric reporter
-# -----------------------------------
-async def report_binary_version_daily(config):
-    unit_path = config.get("systemd_unit_path", "")
-    initial_path = extract_binary_path_from_unit(unit_path)
-
-    if initial_path and "cosmovisor" in initial_path:
-        binary_path = find_actual_cosmos_binary_from_parent()
-    else:
-        binary_path = initial_path
+async def report_binary_version_daily(config: Dict):
+    binaries = config.get("binaries", {})
+    if not binaries:
+        print("[!] No binaries specified in config.")
+        return
 
     while True:
-        if not binary_path:
-            print(f"[!] No valid binary path found (unit: {unit_path})")
-            return
+        for name, unit_path in binaries.items():
+            print(f"[~] Checking binary for: {name}")
+            initial_path = extract_binary_path_from_unit(unit_path)
 
-        version_output = get_binary_version(binary_path)
-        if version_output:
-            safe_version = extract_version_string(version_output)
-            binary_version_metric.labels(version=safe_version).set(1)
-            print(f"[✓] binary_version_info metric set to version={safe_version}")
-        else:
-            print(f"[!] Could not determine binary version for: {binary_path}")
+            binary_path = find_actual_binary() if (initial_path and "cosmovisor" in initial_path) else initial_path
 
-        await asyncio.sleep(86400)  # Run once per day
+            if not binary_path:
+                print(f"[!] No valid binary path for {name} (unit: {unit_path})")
+                continue
+
+            version = get_binary_version(binary_path)
+            if version:
+                binary_version_metric.labels(version=version, binary=name).set(1)
+                print(f"[✓] {name} version: {version}")
+            else:
+                print(f"[!] Could not determine version for {name}")
+
+        await asyncio.sleep(86400)  # every 24h

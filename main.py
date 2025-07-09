@@ -3,7 +3,6 @@ import asyncio
 from prometheus_client import start_http_server
 from config import load_config
 from binary.version import report_binary_version_daily
-from collector import cosmos  # For now, only Cosmos is supported
 
 def run():
     parser = argparse.ArgumentParser(description="Multi-Protocol Prometheus Exporter")
@@ -16,23 +15,27 @@ def run():
     args = parser.parse_args()
 
     config = load_config(args.config)
-    protocol = config["protocol"]
+    protocol = config.get("protocol", "").lower()
 
     collector = None
+    tasks = []
 
     if protocol == "cosmos":
         from collector import cosmos
         collector = cosmos
-        tasks = [
-            cosmos.metric_updater(config),
-            report_binary_version_daily(config)
-        ]
+        tasks.append(cosmos.metric_updater(config))
+
+    elif protocol == "evm":
+        from collector import evm
+        collector = evm
+        tasks.append(evm.metric_updater(config))
+
     else:
         print(f"[!] Protocol '{protocol}' not supported for metrics collection.")
         print("[~] Only binary version metric will be exposed.")
-        tasks = [
-            report_binary_version_daily(config)
-        ]
+
+    # Always run binary version metric
+    tasks.append(report_binary_version_daily(config))
 
     print(f"Exporter running on :{config['metrics_port']}/metrics using config: {args.config}")
     start_http_server(config["metrics_port"])
