@@ -50,7 +50,14 @@ echo -e "\n[binaries]" >> config.toml
 IFS=',' read -ra BIN_ARRAY <<< "$binary_input"
 for alias in "${BIN_ARRAY[@]}"; do
   alias_trimmed=$(echo "$alias" | xargs)
-  echo "$alias_trimmed = \"/etc/systemd/system/${alias_trimmed}.service\"" >> config.toml
+  unit_path=$(systemctl show "${alias_trimmed}.service" -p FragmentPath --value 2>/dev/null)
+
+  if [[ -n "$unit_path" && -f "$unit_path" ]]; then
+    echo "$alias_trimmed = \"$unit_path\"" >> config.toml
+    echo "[✓] Found unit for $alias_trimmed → $unit_path"
+  else
+    echo "[!] Could not find unit file for $alias_trimmed. Skipping..."
+  fi
 done
 
 # Cosmos-specific config
