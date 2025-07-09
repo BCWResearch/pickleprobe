@@ -16,11 +16,11 @@ def extract_binary_path_from_unit(unit_path):
         with open(unit_path, 'r') as f:
             content = f.read()
 
-        # Match ExecStart line
-        match = re.search(r'^ExecStart=(\S+)', content, re.MULTILINE)
+        # Allow leading whitespace before 'ExecStart='
+        match = re.search(r'^\s*ExecStart=(\S+)', content, re.MULTILINE)
         if match:
             full_cmd = match.group(1)
-            binary_path = full_cmd.split()[0]  # Only extract the binary, e.g., /usr/bin/heimdalld
+            binary_path = full_cmd.split()[0]  # Only extract the binary path (first part)
             return binary_path
     except Exception as e:
         logger.error(f"[!] Failed to extract binary path from {unit_path}: {e}")
@@ -46,12 +46,12 @@ def get_binary_version(binary_path):
     if not binary_path:
         return None
 
+    version_regex = re.compile(r"\bv?(\d+\.\d+\.\d+(?:[-+.\w]*)?)\b")
+
     version_cmds = [
         [binary_path, "version"],
         [binary_path, "--version"]
     ]
-
-    version_regex = re.compile(r"\bv?(\d+\.\d+\.\d+(?:[-+.\w]*)?)\b")
 
     for cmd in version_cmds:
         try:
